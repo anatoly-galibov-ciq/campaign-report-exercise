@@ -25,8 +25,14 @@ filed several issues against it.
 ### Trying the API by hand
 
 Tests don't check everything. `npm run dev` starts the GraphQL API on port 4000 with GraphiQL, and
-it restarts whenever the code changes. In StackBlitz, open a second terminal with the `+` button and run
-the command there; GraphiQL opens in the preview panel. Locally, open http://localhost:4000/graphql.
+it restarts whenever the code changes.
+
+- **StackBlitz:** open a second terminal with the `+` button in the terminal panel and run
+  `npm run dev` there. Then click the plug icon ("Ports in use") in the left bar and choose
+  **Port 4000**: GraphiQL opens in a new tab.
+- **Locally:** open http://localhost:4000/graphql.
+
+In GraphiQL:
 
 - Who is asking comes from request headers: `x-partner-id` (required) and `x-brand-ids` (optional,
   comma-separated). Partner 1 owns campaigns 101–110, and partner 3 owns 300–306.
