@@ -129,6 +129,12 @@ const yoga = createYoga({
   },
 });
 
-createServer(yoga).listen(PORT, () => {
+createServer((request, response) => {
+  if (request.url === '/') {
+    response.writeHead(302, { location: '/graphql' }).end();
+    return;
+  }
+  yoga(request, response);
+}).listen(PORT, () => {
   console.log(`Campaign report API: http://localhost:${PORT}/graphql`);
 });
