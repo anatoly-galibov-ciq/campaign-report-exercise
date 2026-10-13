@@ -32,12 +32,17 @@ export interface SocialApiOptions {
 }
 
 const METRICS = new Map<string, Omit<PostMetrics, 'postId'>>([
-  ['ig_1001', { reach: 12000, views: 30000, likes: 900, comments: 60, shares: 15, saves: 40 }],
-  ['ig_1002', { reach: 4000, views: 8000, likes: 300, comments: 20, shares: 5, saves: 30 }],
-  ['tt_1003', { reach: 20000, views: 50000, likes: 1500, comments: 100, shares: 200, saves: 50 }],
-  ['yt_1004', { reach: null, views: 15000, likes: 600, comments: 40, shares: 0, saves: 0 }],
+  // Not in any campaign yet; tests and the dev server attach it.
   ['tt_1005', { reach: 8000, views: 16000, likes: 400, comments: 30, shares: 70, saves: 10 }],
 ]);
+
+// Small campaigns 101–110: the four posts of every campaign have the same metrics.
+for (let campaignId = 101; campaignId <= 110; campaignId++) {
+  METRICS.set(`ig_${campaignId}_1`, { reach: 12000, views: 30000, likes: 900, comments: 60, shares: 15, saves: 40 });
+  METRICS.set(`ig_${campaignId}_2`, { reach: 4000, views: 8000, likes: 300, comments: 20, shares: 5, saves: 30 });
+  METRICS.set(`tt_${campaignId}_1`, { reach: 20000, views: 50000, likes: 1500, comments: 100, shares: 200, saves: 50 });
+  METRICS.set(`yt_${campaignId}_1`, { reach: null, views: 15000, likes: 600, comments: 40, shares: 0, saves: 0 });
+}
 
 // Large campaigns 300–306: every third post (i % 3 === 2) is a YouTube video.
 for (const campaignId of [300, 301, 302, 303, 304, 305, 306]) {

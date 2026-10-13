@@ -1,107 +1,93 @@
 # Campaign report
 
-You've just joined the team that owns the reporting API. Brands and agencies use it to see how
-their influencer campaigns perform. `getCampaignReport` (`src/report.handler.ts`) is the resolver
-behind the GraphQL query `campaignReport(campaignId: Int!)`. The service is a long-lived Node.js
-process that serves many requests at the same time. The resolver grew over time, and support has
-filed several issues against it.
+`getCampaignReport` (`src/report.handler.ts`) is the resolver behind the GraphQL query
+`campaignReport(campaignId: Int!)` in our reporting API. Brands and agencies use it to see how their
+influencer campaigns perform. The service is a long-lived Node.js process that serves many requests
+at once. The resolver grew over time, and support has filed a few issues against it.
 
-## Rules
+## How the 40 minutes go
 
-- You have 40 minutes. Think out loud: how you reason matters more to us than finishing everything.
-  You probably won't fix everything, so choose what to do first and tell us what you'd do next.
-- No AI assistants (Copilot, ChatGPT, Claude, …). Documentation and web search are fine.
-- You may change anything in `src/report.handler.ts` and `test/`, and add files.
-- `src/db.ts` and `src/social-api.ts` stand in for our database and a third-party API. Read them,
-  but don't change them. `src/server.ts` is a dev tool, and you don't need to change it.
+1. **Review (about 5 minutes).** Read `src/report.handler.ts` and tell us what worries you, most
+   important first. Don't change anything yet.
+2. **Fix the reported issues below.** Each one has failing tests in `test/report.handler.test.ts`.
+   You probably won't finish everything, and that's expected: choose an order and tell us what you'd
+   do next.
+3. **Wrap-up (last 5 minutes).** What you'd do with more time.
 
-## Running
+Think out loud, and ask us anything along the way. No AI assistants; documentation and web search
+are fine. You may change `src/report.handler.ts` and the tests, and add files. `src/db.ts` and
+`src/social-api.ts` stand in for our database and a third-party API: read them, but don't change
+them.
 
-- **StackBlitz:** the tests start on their own in watch mode and re-run as you edit. Don't reload
-  the page: as a guest, your changes live only in this browser tab.
-- **Locally (Node 22+):** `npm install`, then `npm test`.
-- Type check: `npm run typecheck`.
+## Running the tests
 
-### Trying the API by hand
+- `npm test` runs the tests once. StackBlitz runs it for you when the project opens.
+- `npm run test:watch` re-runs them on every change. `npm run typecheck` checks types.
+- In StackBlitz, don't reload the page: as a guest, your changes live only in this browser tab.
+- Locally you need Node 22+ and `npm install`.
 
-Tests don't check everything. `npm run dev` starts the GraphQL API on port 4000 with GraphiQL, and
-it restarts whenever the code changes.
+## Reported issues
 
-- **StackBlitz:** open a second terminal with the `+` button in the terminal panel and run
-  `npm run dev` there. Then click the plug icon ("Ports in use") in the left bar and choose
-  **Port 4000**: GraphiQL opens in a new tab.
-- **Locally:** open http://localhost:4000/graphql.
+- **[security]** A brand manager saw other brands' numbers in a campaign report, and another
+  partner saw a campaign that isn't theirs.
+- **[freshness]** A post attached to a campaign didn't show up in the report for ten minutes.
+- **[data quality]** During a social API outage, reports showed 0 reach instead of an error.
+- **[performance]** Reports for big campaigns (1,000+ posts) time out.
 
-In GraphiQL:
-
-- Who is asking comes from request headers: `x-partner-id` (required) and `x-brand-ids` (optional,
-  comma-separated). Partner 1 owns campaigns 101–110, and partner 3 owns 300–306.
-- Dev-only mutations reproduce the reported issues: `attachPost` (the social API knows `tt_1005`),
-  `simulateSocialApiOutage` and `simulateSocialApiFlakiness`.
-- The server calls `getCampaignReport` from `src/report.handler.ts`, so keep that export working.
-
-## Step 1: review (about 5 minutes)
-
-Read `src/report.handler.ts` and tell us what worries you in it, most important first. Don't change
-anything yet.
-
-## Step 2: the reported issues
-
-Each issue has failing tests under `describe('reported issues')` in `test/report.handler.test.ts`.
 The other tests pass today and must keep passing.
 
-- **[security]** "A brand manager on our account saw other brands' numbers in a campaign report."
-  Another partner reported seeing a campaign that isn't theirs.
-- **[freshness]** "We attached a post to the campaign, and the report didn't show it for ten
-  minutes."
-- **[data quality]** "During yesterday's social API outage, our campaigns showed 0 reach instead of
-  an error. Even on normal days the numbers jump around between reloads."
-- **[performance]** "Reports for big campaigns (1,000+ posts) time out, and it gets worse on
-  Monday mornings, when everyone opens their reports at once."
+**Stretch, only if you have time left:** the skipped tests at the end of the test file cover two
+more issues. Reports also time out when many people open them at once, and numbers jump around
+when the social API is flaky. Remove `.skip` to run them.
 
 ## Product rules
 
-- A campaign belongs to a partner (an agency or a brand). Only users of that partner may open its
+- A campaign belongs to one partner (an agency or a brand). Only that partner's users may open its
   report.
 - Each post in a campaign was made for one brand (`brandId`). Users with `brandIds: null` see every
-  post of the campaign. Brand managers (`brandIds: [11, …]`) only see the posts of their brands, and
-  the whole report is computed from those posts only.
-- Post metrics change slowly, so showing numbers up to 5 minutes old is fine. Campaign changes
-  (posts attached or removed) must show up the next time the report is opened.
+  post. Brand managers (`brandIds: [11, …]`) only see their brands' posts, and the whole report is
+  computed from those posts.
+- Post metrics change slowly, so numbers up to 5 minutes old are fine. Campaign changes (posts
+  attached or removed) must show up the next time the report is opened.
+- We pay for every social API request, so reopening a report within those 5 minutes must not
+  request the same metrics again.
 
 The GraphQL gateway calls the resolver with
 `{ arguments: { campaignId }, identity: { partnerId, brandIds } }`.
 
 ## How the report is computed
 
-- **Reach** of a post: the reach the creator typed in (`manualReach`) if there is one, otherwise the
-  reach from the social API. YouTube doesn't report reach, so views count as reach.
-- **Engagements** of a post:
-  - Instagram: likes + comments + saves
-  - TikTok: likes + comments + shares
-  - YouTube: likes + comments
-- **Engagement rate** = engagements / reach, as a percentage with two decimals (`"7.29%"`), or `"n/a"`
-  when reach is 0. For totals, sum first and then divide; don't average the per-post rates.
+- **Reach** of a post: `manualReach` (typed in by the creator) if it's set, otherwise the reach from
+  the social API. YouTube doesn't report reach, so views count as reach.
+- **Engagements:** Instagram likes + comments + saves; TikTok likes + comments + shares; YouTube
+  likes + comments.
+- **Engagement rate** = engagements / reach, as a percentage with two decimals (`"7.29%"`), or
+  `"n/a"` when reach is 0. For totals, sum first and then divide.
 
 ## Social API (`src/social-api.ts`)
 
-- `getMetrics(postId)`: one post per request.
-- `getMetricsBatch(postIds)`: up to 100 posts per request.
-- Every request takes about 20 ms, whether it's a single post or a batch.
-- We pay for every request, so don't request the same metrics again while they're still fresh
-  enough to show.
-- Our API key allows at most 4 requests in flight at once, and the whole service shares that one
-  key. The provider rejects any request beyond that with 429 and counts every rejection against our
-  key. Stay under the limit; don't rely on retrying into it.
-- Failures are thrown as `SocialApiError` with an HTTP-like `status`. 429 and 503 are transient,
-  and a request may be tried at most 3 times. 400 and 404 are permanent.
+| | |
+| --- | --- |
+| `getMetrics(postId)` | One post per request. |
+| `getMetricsBatch(postIds)` | Up to 100 posts per request, returned in the same order. |
+| Latency | About 20 ms per request, single or batch. |
+| Concurrency | At most 4 requests in flight for our API key, and the whole service shares that key. Extra requests are rejected with 429, and every rejection counts against the key, so stay under the limit rather than retrying into it. |
+| Errors | `SocialApiError` with an HTTP-like `status`. 429 and 503 are transient: a request may be tried up to 3 times. 400 and 404 are permanent. |
 
 ## Errors (`src/errors.ts`)
 
-The GraphQL layer turns `NotFoundError`, `ForbiddenError` and `UpstreamError` (meaning a service we
-depend on is failing) into client-facing error codes. Any other error reaches the client as a
-generic "internal error".
+Throw `NotFoundError`, `ForbiddenError` or `UpstreamError` (a service we depend on is failing). The
+GraphQL layer turns them into client-facing error codes. Any other error reaches the client as a
+generic internal error.
 
-## Step 3: wrap-up (last 5 minutes)
+## Optional: try the API by hand
 
-We'll talk about what you'd do next if you had more time.
+`npm run dev` starts the GraphQL API with GraphiQL on port 4000 and restarts it when the code
+changes. In StackBlitz, run it in a second terminal (the `+` in the terminal panel), then click the
+plug icon ("Ports in use") on the left and choose **Port 4000**. Locally, open
+http://localhost:4000/graphql.
+
+Set the user with the `x-partner-id` header (partner 1 owns campaigns 101–110, partner 3 owns
+300–306) and, optionally, `x-brand-ids` (for example `11`). Dev-only mutations reproduce the issues:
+`attachPost` (the social API knows `tt_1005`), `simulateSocialApiOutage` and
+`simulateSocialApiFlakiness`. The server calls `getCampaignReport`, so keep that export working.

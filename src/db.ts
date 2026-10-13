@@ -37,12 +37,12 @@ function seedCampaigns(): CampaignRow[] {
 
 function seedCampaignPosts(): CampaignPostRow[] {
   return [
-    // Every small campaign has the same four posts made for two brands, 11 and 12.
+    // Every small campaign has four posts of its own, made for two brands, 11 and 12.
     ...SMALL_CAMPAIGN_IDS.flatMap((campaignId): CampaignPostRow[] => [
-      { campaignId, postId: 'ig_1001', platform: 'instagram', brandId: 11, manualReach: null },
-      { campaignId, postId: 'ig_1002', platform: 'instagram', brandId: 12, manualReach: 5000 },
-      { campaignId, postId: 'tt_1003', platform: 'tiktok', brandId: 11, manualReach: null },
-      { campaignId, postId: 'yt_1004', platform: 'youtube', brandId: 12, manualReach: null },
+      { campaignId, postId: `ig_${campaignId}_1`, platform: 'instagram', brandId: 11, manualReach: null },
+      { campaignId, postId: `ig_${campaignId}_2`, platform: 'instagram', brandId: 12, manualReach: 5000 },
+      { campaignId, postId: `tt_${campaignId}_1`, platform: 'tiktok', brandId: 11, manualReach: null },
+      { campaignId, postId: `yt_${campaignId}_1`, platform: 'youtube', brandId: 12, manualReach: null },
     ]),
 
     // Large campaigns have 1,000 posts each: post_<campaignId>_0 … post_<campaignId>_999,
