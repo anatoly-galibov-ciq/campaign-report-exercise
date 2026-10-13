@@ -13,7 +13,7 @@ filed several issues against it.
 - No AI assistants (Copilot, ChatGPT, Claude, …). Documentation and web search are fine.
 - You may change anything in `src/report.handler.ts` and `test/`, and add files.
 - `src/db.ts` and `src/social-api.ts` stand in for our database and a third-party API. Read them,
-  but don't change them.
+  but don't change them. `src/server.ts` is a dev tool, and you don't need to change it.
 
 ## Running
 
@@ -21,6 +21,18 @@ filed several issues against it.
   the page: as a guest, your changes live only in this browser tab.
 - **Locally (Node 22+):** `npm install`, then `npm test`.
 - Type check: `npm run typecheck`.
+
+### Trying the API by hand
+
+Tests don't check everything. `npm run dev` starts the GraphQL API on port 4000 with GraphiQL, and
+it restarts whenever the code changes. In StackBlitz, open a second terminal with the `+` button and run
+the command there; GraphiQL opens in the preview panel. Locally, open http://localhost:4000/graphql.
+
+- Who is asking comes from request headers: `x-partner-id` (required) and `x-brand-ids` (optional,
+  comma-separated). Partner 1 owns campaigns 101–110, and partner 3 owns 300–306.
+- Dev-only mutations reproduce the reported issues: `attachPost` (the social API knows `tt_1005`),
+  `simulateSocialApiOutage` and `simulateSocialApiFlakiness`.
+- The server calls `getCampaignReport` from `src/report.handler.ts`, so keep that export working.
 
 ## Step 1: review (about 5 minutes)
 
