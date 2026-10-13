@@ -130,7 +130,7 @@ const yoga = createYoga({
 });
 
 createServer((request, response) => {
-  if (request.url === '/') {
+  if (new URL(request.url ?? '/', 'http://localhost').pathname === '/') {
     response.writeHead(302, { location: '/graphql' }).end();
     return;
   }
