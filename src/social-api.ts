@@ -22,14 +22,13 @@ export class SocialApiError extends Error {
   }
 }
 
-export interface SocialApiOptions {
-  /** Round trip of one request, single or batch. */
-  latencyMs?: number;
-  /** A request that would exceed this many in flight is rejected with 429. */
-  maxConcurrentRequests?: number;
-  /** Max ids per getMetricsBatch call. */
-  maxBatchSize?: number;
-}
+// The provider's limits. They come with the API: nothing on our side can raise them.
+/** Round trip of one request, single or batch. */
+const LATENCY_MS = 20;
+/** A request that would exceed this many in flight for our API key is rejected with 429. */
+const MAX_CONCURRENT_REQUESTS = 4;
+/** Max ids per getMetricsBatch call. More posts take several batches. */
+const MAX_BATCH_SIZE = 100;
 
 const METRICS = new Map<string, Omit<PostMetrics, 'postId'>>([
   // Not in any campaign yet; tests and the dev server attach it.
@@ -62,8 +61,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function createSocialApi(options: SocialApiOptions = {}) {
-  const { latencyMs = 20, maxConcurrentRequests = 4, maxBatchSize = 100 } = options;
+/**
+ * Creates a fresh fake client. Application code uses the exported `socialApi` instance below;
+ * tests can create their own to start from a clean state.
+ */
+export function createSocialApi() {
   let inFlight = 0;
   let received = 0;
   let rejected = 0;
@@ -73,18 +75,18 @@ export function createSocialApi(options: SocialApiOptions = {}) {
 
   async function request<T>(handle: () => T): Promise<T> {
     received++;
-    if (inFlight >= maxConcurrentRequests) {
+    if (inFlight >= MAX_CONCURRENT_REQUESTS) {
       rejected++;
       // A rejection costs a round trip too.
-      await sleep(latencyMs);
+      await sleep(LATENCY_MS);
       throw new SocialApiError(
-        `429 Too Many Requests: at most ${maxConcurrentRequests} concurrent requests`,
+        `429 Too Many Requests: at most ${MAX_CONCURRENT_REQUESTS} concurrent requests`,
         429,
       );
     }
     inFlight++;
     try {
-      await sleep(latencyMs);
+      await sleep(LATENCY_MS);
       if (outage || (flaky && flakyCounter++ % 2 === 0)) {
         throw new SocialApiError('503 Service Unavailable', 503);
       }
@@ -108,10 +110,13 @@ export function createSocialApi(options: SocialApiOptions = {}) {
       return request(() => lookup(postId));
     },
 
-    /** Metrics of up to `maxBatchSize` posts in one request, in the order of `postIds`. */
+    /**
+     * Metrics of up to 100 posts in one request, in the order of `postIds`.
+     * For more posts, send several batches.
+     */
     async getMetricsBatch(postIds: string[]): Promise<PostMetrics[]> {
-      if (postIds.length > maxBatchSize) {
-        throw new SocialApiError(`400 Bad Request: at most ${maxBatchSize} ids per batch`, 400);
+      if (postIds.length > MAX_BATCH_SIZE) {
+        throw new SocialApiError(`400 Bad Request: at most ${MAX_BATCH_SIZE} ids per batch`, 400);
       }
       return request(() => postIds.map(lookup));
     },

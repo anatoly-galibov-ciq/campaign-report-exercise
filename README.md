@@ -69,10 +69,13 @@ The GraphQL gateway calls the resolver with
 | | |
 | --- | --- |
 | `getMetrics(postId)` | One post per request. |
-| `getMetricsBatch(postIds)` | Up to 100 posts per request, returned in the same order. |
+| `getMetricsBatch(postIds)` | Up to 100 posts per request, returned in the same order. For more posts, send several batches. |
 | Latency | About 20 ms per request, single or batch. |
 | Concurrency | At most 4 requests in flight for our API key, and the whole service shares that key. Extra requests are rejected with 429, and every rejection counts against the key, so stay under the limit rather than retrying into it. |
 | Errors | `SocialApiError` with an HTTP-like `status`. 429 and 503 are transient: a request may be tried up to 3 times. 400 and 404 are permanent. |
+
+These limits belong to the provider, so our code can't change them. The application uses the
+exported `socialApi` client; `createSocialApi()` only gives tests a fresh fake.
 
 ## Errors (`src/errors.ts`)
 
