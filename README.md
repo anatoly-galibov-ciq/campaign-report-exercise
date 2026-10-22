@@ -7,7 +7,7 @@ at once. The resolver grew over time, and support has filed a few issues against
 
 ## How the 40 minutes go
 
-1. **Review (about 5 minutes).** Read `src/report.handler.ts` and tell us what worries you, most
+1. **Review (about 5 minutes).** Read Product description, then read `src/report.handler.ts` and tell us what worries you, most
    important first. Don't change anything yet.
 2. **Fix the reported issues below.** Each one has failing tests in `test/report.handler.test.ts`.
    You probably won't finish everything, and that's expected: choose an order and tell us what you'd
@@ -19,28 +19,7 @@ are fine. You may change `src/report.handler.ts` and the tests, and add files. `
 `src/social-api.ts` stand in for our database and a third-party API: read them, but don't change
 them.
 
-## Running the tests
-
-- `npm test` runs the tests once. StackBlitz runs it for you when the project opens.
-- `npm run test:watch` re-runs them on every change. `npm run typecheck` checks types.
-- In StackBlitz, don't reload the page: as a guest, your changes live only in this browser tab.
-- Locally you need Node 22+ and `npm install`.
-
-## Reported issues
-
-- **[security]** A brand manager saw other brands' numbers in a campaign report, and another
-  partner saw a campaign that isn't theirs.
-- **[freshness]** A post attached to a campaign didn't show up in the report for ten minutes.
-- **[data quality]** During a social API outage, reports showed 0 reach instead of an error.
-- **[performance]** Reports for big campaigns (1,000+ posts) time out.
-
-The other tests pass today and must keep passing.
-
-**Stretch, only if you have time left:** the skipped tests at the end of the test file cover two
-more issues. Reports also time out when many people open them at once, and numbers jump around
-when the social API is flaky. Remove `.skip` to run them.
-
-## Product rules
+## Product description
 
 - A campaign belongs to one partner (an agency or a brand). Only that partner's users may open its
   report.
@@ -64,15 +43,36 @@ The GraphQL gateway calls the resolver with
 - **Engagement rate** = engagements / reach, as a percentage with two decimals (`"7.29%"`), or
   `"n/a"` when reach is 0. For totals, sum first and then divide.
 
+## Running the tests
+
+- `npm test` runs the tests once. StackBlitz runs it for you when the project opens.
+- `npm run test:watch` re-runs them on every change. `npm run typecheck` checks types.
+- In StackBlitz, don't reload the page: as a guest, your changes live only in this browser tab.
+- Locally you need Node 22+ and `npm install`.
+
+## Reported issues
+
+- **[security]** A brand manager saw other brands' numbers in a campaign report, and another
+  partner saw a campaign that isn't theirs.
+- **[freshness]** A post attached to a campaign didn't show up in the report for ten minutes.
+- **[data quality]** During a social API outage, reports showed 0 reach instead of an error.
+- **[performance]** Reports for big campaigns (1,000+ posts) time out.
+
+The other tests pass today and must keep passing.
+
+**Stretch, only if you have time left:** the skipped tests at the end of the test file cover two
+more issues. Reports also time out when many people open them at once, and numbers jump around
+when the social API is flaky. Remove `.skip` to run them.
+
 ## Social API (`src/social-api.ts`)
 
-| | |
-| --- | --- |
-| `getMetrics(postId)` | One post per request. |
-| `getMetricsBatch(postIds)` | Up to 100 posts per request, returned in the same order. For more posts, send several batches. |
-| Latency | About 20 ms per request, single or batch. |
-| Concurrency | At most 4 requests in flight for our API key, and the whole service shares that key. Extra requests are rejected with 429, and every rejection counts against the key, so stay under the limit rather than retrying into it. |
-| Errors | `SocialApiError` with an HTTP-like `status`. 429 and 503 are transient: a request may be tried up to 3 times. 400 and 404 are permanent. |
+|                            |                                                                                                                                                                                                                              |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getMetrics(postId)`       | One post per request.                                                                                                                                                                                                        |
+| `getMetricsBatch(postIds)` | Up to 100 posts per request, returned in the same order. For more posts, send several batches.                                                                                                                               |
+| Latency                    | About 20 ms per request, single or batch.                                                                                                                                                                                    |
+| Concurrency                | At most 4 requests in flight for our API key, and the whole service shares that key. Extra requests are rejected with 429, and every rejection counts against the key, so stay under the limit rather than retrying into it. |
+| Errors                     | `SocialApiError` with an HTTP-like `status`. 429 and 503 are transient: a request may be tried up to 3 times. 400 and 404 are permanent.                                                                                     |
 
 These limits belong to the provider, so our code can't change them. The application uses the
 exported `socialApi` client; `createSocialApi()` only gives tests a fresh fake.
